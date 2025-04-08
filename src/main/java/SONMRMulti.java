@@ -9,30 +9,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class SONMRMulti {
-
-    public void setup(Mapper.Context context) throws IOException {
-        Configuration conf = context.getConfiguration();
-//        minlen = conf.getInt("minlen", 3);
-//        maxlen = conf.getInt("maxlen", 10);
-
-        URI[] cacheFiles = context.getCacheFiles();
-        String swPath = cacheFiles[0].toString();
-
-        File swFile = new File(swPath);
-        if (swFile.canRead()) {
-            BufferedReader reader = new BufferedReader(new FileReader(swFile));
-            String line = reader.readLine();
-//            swSet.add(line);
-        }
-    }
-
 
     public static void main(String[] args) throws Exception {
         if (args.length != 6) {
@@ -72,29 +55,51 @@ public class SONMRMulti {
 
 
         Configuration conf = new Configuration();
-        conf.setInt("minlen", minlen);
-        conf.setInt("maxlen", maxlen);
+        conf.setInt("dataset_size", datasetSize);
+        conf.setInt("transactions_per_block", transactionsPerBlock);
+        conf.setDouble("min_freq", minFreq);
 
-        Job job = Job.getInstance(conf, "SONMRMulti");
-        job.setInputFormatClass(MultiLineInputFormat.class);
-        org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(job, transactionsPerBlock); //numLines is one of the command-line args
-        job.setJarByClass(SONMRMulti.class);
-        job.setMapperClass(RoundOneMapper.class);
-        job.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
-        job.setReducerClass(RoundOneReducer.class);
+        // Round One
 
-        /*
-        * Another round of MapReduce??
-        *
-        *
-        * */
+        Job roundOneJob = Job.getInstance(conf, "SONMRSingle");
+        roundOneJob.setInputFormatClass(MultiLineInputFormat.class);
+        org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundOneJob, transactionsPerBlock);
+        roundOneJob.setJarByClass(SONMRSingle.class);
+        roundOneJob.setMapperClass(RoundOneMapper.class);
+        roundOneJob.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
+        roundOneJob.setReducerClass(RoundOneReducer.class);
 
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
-        FileInputFormat.addInputPath(job, inputPath);
-        FileOutputFormat.setOutputPath(job, outputPath);
-        job.addCacheFile(swPath.toUri());
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        roundOneJob.setOutputKeyClass(Text.class);
+        roundOneJob.setOutputValueClass(IntWritable.class);
+        FileInputFormat.addInputPath(roundOneJob, inputPath);
+        FileOutputFormat.setOutputPath(roundOneJob, intermPath);
+
+        // Might have to figure out some other stuff here
+
+        // Round Two
+
+        Job roundTwoJob = Job.getInstance(conf, "SONMRMulti");
+        roundTwoJob.setInputFormatClass(MultiLineInputFormat.class);
+        org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundTwoJob, transactionsPerBlock);
+        roundTwoJob.setJarByClass(SONMRSingle.class);
+        roundTwoJob.setMapperClass(RoundTwoMapperMulti.class);
+        roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
+        roundTwoJob.setReducerClass(RoundTwoReducer.class);
+
+
+        roundTwoJob.setOutputKeyClass(Text.class);
+        roundTwoJob.setOutputValueClass(NullWritable.class); // per the hint from Moodle
+
+        FileInputFormat.addInputPath(roundTwoJob, intermPath); // Not sure if this is necessary
+
+        String cacheFilePathAsString = intermPath.toString() + "/part-r-00000";
+        Path cacheFilePath = new Path(cacheFilePathAsString);
+        roundTwoJob.addCacheFile(cacheFilePath.toUri());
+
+
+        FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
+
+        System.exit(roundOneJob.waitForCompletion(true) && roundTwoJob.waitForCompletion(true) ? 0 : 1);
     }
 }

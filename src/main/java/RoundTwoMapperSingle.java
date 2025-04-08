@@ -3,15 +3,11 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashSet;
-import java.util.StringTokenizer;
 
-public class RoundOneMapper
+public class RoundTwoMapperSingle
         extends Mapper<Object, Text, Text, IntWritable> {
     private final static IntWritable one = new IntWritable(1);
     private Text word = new Text();
@@ -28,8 +24,7 @@ public class RoundOneMapper
         transactionsPerBlock = Integer.parseInt(conf.get("transactions_per_block"));
         minFreq = Double.parseDouble(conf.get("min_freq"));
 
-        // something here
-
+        // to figure out
 
         URI[] cacheFiles = context.getCacheFiles();
 

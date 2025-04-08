@@ -9,6 +9,10 @@ public class RoundTwoReducer extends Reducer<Text, IntWritable,Text,IntWritable>
     public void reduce(Text key, Iterable<IntWritable> values,
                        Context context
     ) throws IOException, InterruptedException {
+
+
+        // we will do something different here...
+
         int sum = 0;
         for (IntWritable val : values) {
             sum += val.get();
