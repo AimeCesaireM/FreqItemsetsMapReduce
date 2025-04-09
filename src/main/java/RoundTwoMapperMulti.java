@@ -2,10 +2,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashSet;
+import java.util.*;
 
 public class RoundTwoMapperMulti
         extends Mapper<Object, Text, Text, IntWritable> {
@@ -14,6 +18,7 @@ public class RoundTwoMapperMulti
 
     int datasetSize, transactionsPerBlock;
     double minFreq;
+    List<Set<String>> candidateSets = new ArrayList<>();
 
 
     public void setup(Context context) throws IOException {
@@ -22,14 +27,39 @@ public class RoundTwoMapperMulti
         transactionsPerBlock = Integer.parseInt(conf.get("transactions_per_block"));
         minFreq = Double.parseDouble(conf.get("min_freq"));
 
-        // to figure out
-
         URI[] cacheFiles = context.getCacheFiles();
+        if (cacheFiles != null) {
+            File file = new File(cacheFiles[0].getPath());
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+
+            // every line is a transaction
+            String line = reader.readLine();
+            while (line != null) {
+                String[] items = line.split(" ");
+                Set<String> candidate = new HashSet<>(Arrays.asList(items));
+                candidateSets.add(candidate);
+                line = reader.readLine();
+            }
+            reader.close();
+
+        }
 
     }
 
     public void map(Object key, Text value, Context context
     ) throws IOException, InterruptedException {
-        // map method here
+        // It gets a basket of transactions
+
+        String[] lines = value.toString().split("\n");
+
+        for (String line : lines) {
+            Set<String> basket = new HashSet<>(Arrays.asList(line.split(" ")));
+            for (Set<String> set : candidateSets) {
+                if (basket.containsAll(set)) {
+                    word.set(set.toString());
+                    context.write(word, one);
+                }
+            }
+        }
     }
 }

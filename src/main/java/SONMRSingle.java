@@ -79,10 +79,11 @@ public class SONMRSingle {
         // Round Two
 
         Job roundTwoJob = Job.getInstance(conf, "SONMRSingle Round Two");
-        roundTwoJob.setInputFormatClass(MultiLineInputFormat.class);
-        org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundTwoJob, transactionsPerBlock);
+        // No custom InputFormatClass
+//      // We want it to handle one transaction per call
         roundTwoJob.setJarByClass(SONMRSingle.class);
-        roundTwoJob.setMapperClass(RoundTwoMapperSingle.class);
+
+        roundTwoJob.setMapperClass(RoundTwoMapperSingle.class); // this mapper to take only one transaction
 //        roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 

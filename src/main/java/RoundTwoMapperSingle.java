@@ -48,9 +48,10 @@ public class RoundTwoMapperSingle
 
     public void map(Object key, Text value, Context context
     ) throws IOException, InterruptedException {
+        // It gets one transaction
         String[] items = value.toString().split(" ");
-        Set<String > basket = new HashSet<>(Arrays.asList(items));
-        // map method here
+
+        Set<String> basket = new HashSet<>(Arrays.asList(items));
 
         for (Set<String> set : candidateSets) {
             if (basket.containsAll(set)){

@@ -85,7 +85,7 @@ public class SONMRMulti {
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundTwoJob, transactionsPerBlock);
         roundTwoJob.setJarByClass(SONMRSingle.class);
         roundTwoJob.setMapperClass(RoundTwoMapperMulti.class);
-//        roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
+//        roundTwoJob.setCombinerClass(RoundTwoReducer.class ); // Not Very Sure here,... coming back to this
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 
 
