@@ -91,7 +91,7 @@ public class SONMRSingle {
         roundTwoJob.setOutputValueClass(NullWritable.class); // per the hint from Moodle
 
 
-        FileInputFormat.addInputPath(roundTwoJob, intermPath); // Not sure if this is necessary
+        FileInputFormat.addInputPath(roundTwoJob, inputPath); // Not sure if this is necessary
 
         String cacheFilePathAsString = intermPath.toString() + "/part-r-00000";
         Path cacheFilePath = new Path(cacheFilePathAsString);
