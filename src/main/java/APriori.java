@@ -18,7 +18,7 @@ public class APriori {
     }
 
     //APriori algorithm,
-    public Set<Set<String>> getFrequentItemSets (int frequencyThreshold){
+    public Set<Set<String>> getFrequentItemSets (double frequencyThreshold){
         int k = 1;
         Set<Set<String>> union = new HashSet<>();
 

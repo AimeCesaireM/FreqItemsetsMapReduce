@@ -15,8 +15,6 @@ public class RoundTwoMapperMulti
     int datasetSize, transactionsPerBlock;
     double minFreq;
 
-    HashSet<String> swSet = new HashSet<>();
-
 
     public void setup(Context context) throws IOException {
         Configuration conf = context.getConfiguration();

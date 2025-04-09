@@ -59,12 +59,12 @@ public class SONMRSingle {
 
         //Round One
 
-        Job roundOneJob = Job.getInstance(conf, "SONMRSingle");
+        Job roundOneJob = Job.getInstance(conf, "SONMRSingle Round One");
         roundOneJob.setInputFormatClass(MultiLineInputFormat.class);
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundOneJob, transactionsPerBlock);
         roundOneJob.setJarByClass(SONMRSingle.class);
         roundOneJob.setMapperClass(RoundOneMapper.class);
-        roundOneJob.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
+//        roundOneJob.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
         roundOneJob.setReducerClass(RoundOneReducer.class);
 
 
@@ -72,17 +72,18 @@ public class SONMRSingle {
         roundOneJob.setOutputValueClass(IntWritable.class);
         FileInputFormat.addInputPath(roundOneJob, inputPath);
         FileOutputFormat.setOutputPath(roundOneJob, intermPath);
+        roundOneJob.waitForCompletion(true);
 
         // Might have to figure out some other stuff here
 
         // Round Two
 
-        Job roundTwoJob = Job.getInstance(conf, "SONMRSingle");
+        Job roundTwoJob = Job.getInstance(conf, "SONMRSingle Round Two");
         roundTwoJob.setInputFormatClass(MultiLineInputFormat.class);
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundTwoJob, transactionsPerBlock);
         roundTwoJob.setJarByClass(SONMRSingle.class);
         roundTwoJob.setMapperClass(RoundTwoMapperSingle.class);
-        roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
+//        roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 
 
@@ -93,7 +94,7 @@ public class SONMRSingle {
 
         FileInputFormat.addInputPath(roundTwoJob, inputPath); // Not sure if this is necessary
 
-        String cacheFilePathAsString = intermPath.toString() + "/part-r-00000";
+        String cacheFilePathAsString = intermPath + "/part-r-00000"; //toString() redundant ?
         Path cacheFilePath = new Path(cacheFilePathAsString);
         roundTwoJob.addCacheFile(cacheFilePath.toUri());
 
@@ -101,6 +102,6 @@ public class SONMRSingle {
 
 
 
-        System.exit(roundOneJob.waitForCompletion(true) && roundTwoJob.waitForCompletion(true) ? 0 : 1);
+        System.exit(roundTwoJob.waitForCompletion(true) ? 0 : 1);
     }
 }
