@@ -1,5 +1,3 @@
-import org.xbill.DNS.ZoneMDRecord;
-
 import java.util.*;
 
 public class APriori {
@@ -7,41 +5,39 @@ public class APriori {
     // a transaction is a set of strings; transactions can look identical;
     // hence an abstract data type  that allows duplicates
     private List<Set<String>> transactionList;
-//    private int transactionCount;
-
-    private List<Set<String>> itemSets;
-
-
 
     public APriori(List<Set<String>> transactions) {
         this.transactionList = transactions;
     }
 
-    //APriori algorithm,
-    public Set<Set<String>> getFrequentItemSets (double frequencyThreshold){
+    //APriori algorithm, using frequency threshold
+    public String getFrequentItemSets (double minSupport){
+        System.err.println("Running getFrequentItemSets");
         int k = 1;
-        Set<Set<String>> union = new HashSet<>();
+        Set<Set<String>> currentFrequentItemSets = getFrequentOneItemsets(minSupport);
 
-        Set<Set<String>> currentFrequentItemSets = getFrequentOneItemsets(frequencyThreshold);
+        Set<Set<String>> union = new HashSet<>(currentFrequentItemSets);
 
         while (!currentFrequentItemSets.isEmpty()){
-            union.addAll(currentFrequentItemSets);
+
             List<Set<String>> candidateItems = generateCandidateItemsets(currentFrequentItemSets, k);
             Set<Set<String>> prunedItemsets = pruneItemsetsFromCandidateItemsets(candidateItems, currentFrequentItemSets, k);
-            currentFrequentItemSets = getFinalCandidateItemsets(prunedItemsets, frequencyThreshold);
+            Set<Set<String>> nextFrequentItemsets = getFinalFrequentItemSets(prunedItemsets, minSupport);
+
+            union.addAll(currentFrequentItemSets);
 
             k++;
+            currentFrequentItemSets = nextFrequentItemsets;
         }
 
-        return union;
+        return setOfItemSetsToString(union);
 
     }
 
-    private Set<Set<String>> getFrequentOneItemsets (double frequencyThreshold){
+    private Set<Set<String>> getFrequentOneItemsets (double minSupport){
+        System.err.println("Running getFrequentOneItemsets");
 
         Map<String, Integer> items = new HashMap<>();
-        int size = transactionList.size();
-
 
         //get all items
         for (Set<String> transaction : transactionList) {
@@ -50,11 +46,11 @@ public class APriori {
             }
         }
 
-        // of all items, which ones have >= threshold frequency ? need to check logic when I'm less sleepy
+        // of all items, which ones have >= threshold frequency ?
         Set<Set<String>> frequentOneItemsets = new HashSet<>();
+
         for (Map.Entry<String, Integer> entry : items.entrySet()) {
-            double entryFreq = (double) entry.getValue()/size;
-            if (entryFreq >= frequencyThreshold) {
+            if (entry.getValue() >= minSupport) {
                 Set<String> itemset = new HashSet<>();
                 itemset.add(entry.getKey());
                 frequentOneItemsets.add(itemset);
@@ -68,19 +64,22 @@ public class APriori {
     // generating C_{k+1} by joining itemset-pairs in F_k  --> coming back to this tomorrow as well
     private List<Set<String>> generateCandidateItemsets (Set<Set<String>> previousFrequentItemsets, int k){
 
+        System.err.println("Running getCandidateItemsets");
         List<Set<String>> candidateItemsets = new ArrayList<>();
 
-        List<Set<String>> previousFrequentItemsetList = new ArrayList<>(previousFrequentItemsets); //need to convert to a list as I will need to look for subsets in pruning
+        List<Set<String>> previousFrequentItemsetList = new ArrayList<>(previousFrequentItemsets);
 
+        int size = previousFrequentItemsets.size();
 
         // should have no duplicates
-        for (int i = 0; i < previousFrequentItemsetList.size(); i++) {
-            for (int j = i + 1; j < previousFrequentItemsetList.size(); j++) {
-                Set<String> combinedItemset = previousFrequentItemsetList.get(i);
+        for (int i = 0; i < size; i++) {
+            for (int j = i + 1; j < size; j++) {
+                Set<String> combinedItemset = new HashSet<>(previousFrequentItemsetList.get(i));
                 combinedItemset.addAll(previousFrequentItemsetList.get(j));
 
-                if (combinedItemset.size() == k) {
+                if (combinedItemset.size() == k + 1) {
                     candidateItemsets.add(combinedItemset);
+                    System.err.println("Combined itemsets: " + combinedItemset);
                 }
 
             }
@@ -92,38 +91,88 @@ public class APriori {
     //prune all candidates that violate downward closure
     private Set<Set<String>> pruneItemsetsFromCandidateItemsets (List<Set<String>> candidateItemsetsList,
                                                                   Set<Set<String>> previousFrequentItemsets, int k){
-
+        System.err.println("Running getCandidateItemsets");
+        if (candidateItemsetsList.isEmpty()){
+            return new HashSet<>();
+        }
         Set<Set<String>> approvedCandidates = new HashSet<>();
-        Set<Set<String>> subSet = new HashSet<>();
-        // having an arraylist means I can now loop over the list to study the subsets
-        for (int i = 0; i < k; i++){
-            subSet.add(candidateItemsetsList.get(i));
-            if (previousFrequentItemsets.containsAll(subSet)){
-                approvedCandidates.addAll(previousFrequentItemsets);
+
+        for (Set<String> candidate : candidateItemsetsList) {
+            // Generate all k-item subsets of the candidate -- a tree? stack dfs?
+            Set<Set<String>> subsets = generateSubsets(candidate, k);
+            boolean allSubsetsFrequent = true;
+            // Check that each subset is indeed frequent (exists in Fk).
+            for (Set<String> subset : subsets) {
+                if (!previousFrequentItemsets.contains(subset)) {
+                    allSubsetsFrequent = false;
+                    break;
+                }
+            }
+            // Only keep the candidate if all of its k-sized subsets are frequent.
+            if (allSubsetsFrequent) {
+                approvedCandidates.add(candidate);
             }
         }
+
         return approvedCandidates;
     }
 
-    private Set<Set<String>> getFinalCandidateItemsets (Set<Set<String>> approvedCandidateItemsets, double freqThreshold){
-        Set<Set<String>> finalCandidateItemsets = new HashSet<>();
-        int size = approvedCandidateItemsets.size();
+    private Set<Set<String>> getFinalFrequentItemSets(Set<Set<String>> candidateItemsets, double minSupport) {
+        Set<Set<String>> frequentItemsets = new HashSet<>();
 
-        Map<Set<String>, Integer> items = new HashMap<>();
-
-        for (Set<String> candidate: approvedCandidateItemsets) {
-            items.merge(candidate, 1, Integer::sum); // IntelliJ suggestion ----------------   will come back for debugging if it does not work
-        }
-
-        for (Map.Entry<Set<String>, Integer> entry : items.entrySet()) {
-            double entryFreq = (double) entry.getValue()/size;
-            if (entryFreq >= freqThreshold) {
-                finalCandidateItemsets.add(entry.getKey());
+        // For each candidate, count the support by scanning all transactions.
+        for (Set<String> candidate : candidateItemsets) {
+            int count = 0;
+            for (Set<String> transaction : transactionList) {
+                if (transaction.containsAll(candidate)) {
+                    count++;
+                }
+            }
+            // Retain candidate if its frequency is over the threshold.
+            if (count >= minSupport) {
+                frequentItemsets.add(candidate);
             }
         }
-
-        return finalCandidateItemsets;
+        return frequentItemsets;
     }
 
+    // If a data structure can help, one place will be here.
+    private Set<Set<String>> generateSubsets(Set<String> set, int subsetSize) {
+        Set<Set<String>> allSubsets = new HashSet<>();
+        List<String> list = new ArrayList<>(set);
+        generateSubsetsRecursive(list, subsetSize, 0, new HashSet<>(), allSubsets);
+        return allSubsets;
+    }
+
+    // this recursion...
+    private void generateSubsetsRecursive(List<String> list, int subsetSize, int index,
+                                          Set<String> current, Set<Set<String>> allSubsets) {
+        if (current.size() == subsetSize) {
+            allSubsets.add(new HashSet<>(current));
+            return;
+        }
+        if (index >= list.size()) {
+            return;
+        }
+        // Include the element at current index.
+        current.add(list.get(index));
+        generateSubsetsRecursive(list, subsetSize, index + 1, current, allSubsets);
+        // Exclude the element and move on.
+        current.remove(list.get(index));
+        generateSubsetsRecursive(list, subsetSize, index + 1, current, allSubsets);
+    }
+
+    private String setOfItemSetsToString (Set<Set<String>> someSetOfItemSets) {
+        StringBuilder result = new StringBuilder();
+        for (Set<String> itemset : someSetOfItemSets) {
+            StringBuilder itemsetString = new StringBuilder();
+            for (String item : itemset) {
+                itemsetString.append(item).append(" ");
+            }
+            result.append(itemsetString).append("\n");
+        }
+
+        return result.toString();
+    }
 
 }

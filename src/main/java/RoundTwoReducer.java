@@ -6,14 +6,11 @@ import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
 
 public class RoundTwoReducer extends Reducer<Text, IntWritable,Text,IntWritable> {
-    private IntWritable result = new IntWritable();
-    private double minFreq;
-    private int transactionsPerBlock;
+    double minSupport;
 
     protected void setup(Context context){
         Configuration conf = context.getConfiguration();
-        minFreq = Double.parseDouble(conf.get("min_freq"));
-        transactionsPerBlock = Integer.parseInt(conf.get("transactions_per_block"));
+        minSupport = Double.parseDouble(conf.get("min_support"));
 
 
     }
@@ -31,9 +28,7 @@ public class RoundTwoReducer extends Reducer<Text, IntWritable,Text,IntWritable>
             count += val.get();
         }
 
-        double freq = (double) count / transactionsPerBlock;
-
-        if (freq > minFreq) {
+        if (count > minSupport) {
             context.write(key, new IntWritable(count));
         }
     }

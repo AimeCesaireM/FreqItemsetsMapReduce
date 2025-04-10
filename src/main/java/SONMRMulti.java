@@ -1,10 +1,3 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashSet;
-import java.util.StringTokenizer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -26,6 +19,7 @@ public class SONMRMulti {
 
         int datasetSize, transactionsPerBlock;
         double minFreq;
+        double minSupport;
         Path inputPath, intermPath, outputPath;
 
         try {
@@ -53,18 +47,21 @@ public class SONMRMulti {
             return;
         }
 
+        minSupport = (int) (minFreq * datasetSize);
+
 
         Configuration conf = new Configuration();
         conf.setInt("dataset_size", datasetSize);
         conf.setInt("transactions_per_block", transactionsPerBlock);
         conf.setDouble("min_freq", minFreq);
+        conf.setDouble("min_support", minSupport);
 
         // Round One
 
         Job roundOneJob = Job.getInstance(conf, "SONMRMulti Round One");
         roundOneJob.setInputFormatClass(MultiLineInputFormat.class);
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundOneJob, transactionsPerBlock);
-        roundOneJob.setJarByClass(SONMRSingle.class);
+        roundOneJob.setJarByClass(SONMRMulti.class);
         roundOneJob.setMapperClass(RoundOneMapper.class);
 //        roundOneJob.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
         roundOneJob.setReducerClass(RoundOneReducer.class);
@@ -74,33 +71,33 @@ public class SONMRMulti {
         roundOneJob.setOutputValueClass(IntWritable.class);
         FileInputFormat.addInputPath(roundOneJob, inputPath);
         FileOutputFormat.setOutputPath(roundOneJob, intermPath);
-        roundOneJob.waitForCompletion(true);
 
-        // Might have to figure out some other stuff here
+        roundOneJob.waitForCompletion(false);
+
 
         // Round Two
 
         Job roundTwoJob = Job.getInstance(conf, "SONMRMulti Round Two");
+
+        String cacheFilePathAsString = intermPath + "/part-r-00000"; //intelli-J thinks toString() is redundant
+        Path cacheFilePath = new Path(cacheFilePathAsString);
+        roundTwoJob.addCacheFile(cacheFilePath.toUri());
+
         roundTwoJob.setInputFormatClass(MultiLineInputFormat.class);
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundTwoJob, transactionsPerBlock);
-        roundTwoJob.setJarByClass(SONMRSingle.class);
+        roundTwoJob.setJarByClass(SONMRMulti.class);
         roundTwoJob.setMapperClass(RoundTwoMapperMulti.class);
 //        roundTwoJob.setCombinerClass(RoundTwoReducer.class ); // Not Very Sure here,... coming back to this
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 
 
         roundTwoJob.setOutputKeyClass(Text.class);
-        roundTwoJob.setOutputValueClass(NullWritable.class); // per the hint from Moodle
+        roundTwoJob.setOutputValueClass(IntWritable.class);
 
         FileInputFormat.addInputPath(roundTwoJob, inputPath); // Not sure if this is necessary
 
-        String cacheFilePathAsString = intermPath + "/part-r-00000"; //intelli-J thinks toString() is redundant
-        Path cacheFilePath = new Path(cacheFilePathAsString);
-        roundTwoJob.addCacheFile(cacheFilePath.toUri());
-
 
         FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
-
-        System.exit(roundTwoJob.waitForCompletion(true) ? 0 : 1);
+        System.exit(roundTwoJob.waitForCompletion(false) ? 0 : 1);
     }
 }

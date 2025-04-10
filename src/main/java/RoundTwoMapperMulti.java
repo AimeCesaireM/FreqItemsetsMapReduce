@@ -2,7 +2,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -18,6 +17,7 @@ public class RoundTwoMapperMulti
 
     int datasetSize, transactionsPerBlock;
     double minFreq;
+    Double minSupport;
     List<Set<String>> candidateSets = new ArrayList<>();
 
 
@@ -26,6 +26,7 @@ public class RoundTwoMapperMulti
         datasetSize = Integer.parseInt(conf.get("dataset_size"));
         transactionsPerBlock = Integer.parseInt(conf.get("transactions_per_block"));
         minFreq = Double.parseDouble(conf.get("min_freq"));
+        minSupport = Double.parseDouble(conf.get("min_support"));
 
         URI[] cacheFiles = context.getCacheFiles();
         if (cacheFiles != null) {
@@ -33,6 +34,8 @@ public class RoundTwoMapperMulti
             BufferedReader reader = new BufferedReader(new FileReader(file));
 
             // every line is a transaction
+
+
             String line = reader.readLine();
             while (line != null) {
                 String[] items = line.split(" ");
@@ -48,7 +51,7 @@ public class RoundTwoMapperMulti
 
     public void map(Object key, Text value, Context context
     ) throws IOException, InterruptedException {
-        // It gets a basket of transactions
+
 
         String[] lines = value.toString().split("\n");
 

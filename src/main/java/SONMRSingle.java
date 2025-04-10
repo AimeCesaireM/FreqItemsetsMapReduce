@@ -1,10 +1,3 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashSet;
-import java.util.StringTokenizer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -25,6 +18,7 @@ public class SONMRSingle {
         }
         int datasetSize, transactionsPerBlock;
         double minFreq;
+        double minSupport;
         Path inputPath, intermPath, outputPath;
 
         try {
@@ -50,12 +44,14 @@ public class SONMRSingle {
             System.err.println("Error: dataset_size and transactions_per_block must be integers, min_freq must be a decimal.");
             return;
         }
+        minSupport = (int) (minFreq * datasetSize);
 
 
         Configuration conf = new Configuration();
         conf.setInt("dataset_size", datasetSize);
         conf.setInt("transactions_per_block", transactionsPerBlock);
         conf.setDouble("min_freq", minFreq);
+        conf.setDouble("min_support", minSupport);
 
         //Round One
 
@@ -72,13 +68,17 @@ public class SONMRSingle {
         roundOneJob.setOutputValueClass(IntWritable.class);
         FileInputFormat.addInputPath(roundOneJob, inputPath);
         FileOutputFormat.setOutputPath(roundOneJob, intermPath);
-        roundOneJob.waitForCompletion(true);
+        roundOneJob.waitForCompletion(false);
 
-        // Might have to figure out some other stuff here
 
         // Round Two
 
         Job roundTwoJob = Job.getInstance(conf, "SONMRSingle Round Two");
+
+        String cacheFilePathAsString = intermPath + "/part-r-00000"; //toString() redundant ?
+        Path cacheFilePath = new Path(cacheFilePathAsString);
+        roundTwoJob.addCacheFile(cacheFilePath.toUri());
+
         // No custom InputFormatClass
 //      // We want it to handle one transaction per call
         roundTwoJob.setJarByClass(SONMRSingle.class);
@@ -89,20 +89,15 @@ public class SONMRSingle {
 
 
         roundTwoJob.setOutputKeyClass(Text.class);
-
-        roundTwoJob.setOutputValueClass(NullWritable.class); // per the hint from Moodle
+        roundTwoJob.setOutputValueClass(IntWritable.class);
 
 
         FileInputFormat.addInputPath(roundTwoJob, inputPath); // Not sure if this is necessary
-
-        String cacheFilePathAsString = intermPath + "/part-r-00000"; //toString() redundant ?
-        Path cacheFilePath = new Path(cacheFilePathAsString);
-        roundTwoJob.addCacheFile(cacheFilePath.toUri());
 
         FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
 
 
 
-        System.exit(roundTwoJob.waitForCompletion(true) ? 0 : 1);
+        System.exit(roundTwoJob.waitForCompletion(false) ? 0 : 1);
     }
 }
