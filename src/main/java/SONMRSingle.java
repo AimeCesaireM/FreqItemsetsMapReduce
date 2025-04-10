@@ -68,7 +68,11 @@ public class SONMRSingle {
         roundOneJob.setOutputValueClass(IntWritable.class);
         FileInputFormat.addInputPath(roundOneJob, inputPath);
         FileOutputFormat.setOutputPath(roundOneJob, intermPath);
+
+        double roundOneStart = System.currentTimeMillis();
         roundOneJob.waitForCompletion(false);
+        double roundOneEnd = System.currentTimeMillis();
+        double elapsed_time = roundOneEnd - roundOneStart;
 
 
         // Round Two
@@ -80,11 +84,11 @@ public class SONMRSingle {
         roundTwoJob.addCacheFile(cacheFilePath.toUri());
 
         // No custom InputFormatClass
-//      // We want it to handle one transaction per call
+        // We want it to handle one transaction per call
         roundTwoJob.setJarByClass(SONMRSingle.class);
 
         roundTwoJob.setMapperClass(RoundTwoMapperSingle.class); // this mapper to take only one transaction
-//        roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
+        //roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 
 
@@ -96,8 +100,12 @@ public class SONMRSingle {
 
         FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
 
+        double roundTwoStart = System.currentTimeMillis();
+        roundTwoJob.waitForCompletion(false);
+        double roundTwoEnd = System.currentTimeMillis();
+        elapsed_time += roundTwoEnd - roundTwoStart;
 
-
-        System.exit(roundTwoJob.waitForCompletion(false) ? 0 : 1);
+        System.err.println("Elapsed time: " + elapsed_time + " ms");
+        System.exit(0);
     }
 }

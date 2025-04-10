@@ -16,9 +16,9 @@ public class APrioriTest {
         }
 //        System.out.println(transactionList);
 
-        int minSupport = 3;
+        int minSupport = 2;
 
-        String frequentItemsets = new APriori(transactionList).getFrequentItemSets(minSupport);
+        String frequentItemsets = new APriori(transactionList).getFrequentItemSets(minSupport).toString();
 
         System.out.println(frequentItemsets);
 

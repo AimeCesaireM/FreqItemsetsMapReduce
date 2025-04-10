@@ -72,7 +72,10 @@ public class SONMRMulti {
         FileInputFormat.addInputPath(roundOneJob, inputPath);
         FileOutputFormat.setOutputPath(roundOneJob, intermPath);
 
+        double startTime = System.currentTimeMillis();
         roundOneJob.waitForCompletion(false);
+        double endTime = System.currentTimeMillis();
+        double elapsed_time = endTime - startTime;
 
 
         // Round Two
@@ -98,6 +101,13 @@ public class SONMRMulti {
 
 
         FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
-        System.exit(roundTwoJob.waitForCompletion(false) ? 0 : 1);
+
+        startTime = System.currentTimeMillis();
+        roundTwoJob.waitForCompletion(false);
+        endTime = System.currentTimeMillis();
+        elapsed_time += endTime - startTime;
+
+        System.err.println("Elapsed time: " + elapsed_time + " ms");
+        System.exit(0);
     }
 }

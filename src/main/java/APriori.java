@@ -11,8 +11,8 @@ public class APriori {
     }
 
     //APriori algorithm, using frequency threshold
-    public String getFrequentItemSets (double minSupport){
-        System.err.println("Running getFrequentItemSets");
+    public Set<Set<String>> getFrequentItemSets (double minSupport){
+//        System.err.println("Running getFrequentItemSets");
         int k = 1;
         Set<Set<String>> currentFrequentItemSets = getFrequentOneItemsets(minSupport);
 
@@ -30,12 +30,12 @@ public class APriori {
             currentFrequentItemSets = nextFrequentItemsets;
         }
 
-        return setOfItemSetsToString(union);
+        return union;
 
     }
 
     private Set<Set<String>> getFrequentOneItemsets (double minSupport){
-        System.err.println("Running getFrequentOneItemsets");
+//        System.err.println("Running getFrequentOneItemsets");
 
         Map<String, Integer> items = new HashMap<>();
 
@@ -64,7 +64,7 @@ public class APriori {
     // generating C_{k+1} by joining itemset-pairs in F_k  --> coming back to this tomorrow as well
     private List<Set<String>> generateCandidateItemsets (Set<Set<String>> previousFrequentItemsets, int k){
 
-        System.err.println("Running getCandidateItemsets");
+//        System.err.println("Running getCandidateItemsets");
         List<Set<String>> candidateItemsets = new ArrayList<>();
 
         List<Set<String>> previousFrequentItemsetList = new ArrayList<>(previousFrequentItemsets);
@@ -79,7 +79,7 @@ public class APriori {
 
                 if (combinedItemset.size() == k + 1) {
                     candidateItemsets.add(combinedItemset);
-                    System.err.println("Combined itemsets: " + combinedItemset);
+//                    System.err.println("Combined itemsets: " + combinedItemset);
                 }
 
             }
@@ -91,7 +91,7 @@ public class APriori {
     //prune all candidates that violate downward closure
     private Set<Set<String>> pruneItemsetsFromCandidateItemsets (List<Set<String>> candidateItemsetsList,
                                                                   Set<Set<String>> previousFrequentItemsets, int k){
-        System.err.println("Running getCandidateItemsets");
+//        System.err.println("Running getCandidateItemsets");
         if (candidateItemsetsList.isEmpty()){
             return new HashSet<>();
         }
@@ -160,19 +160,6 @@ public class APriori {
         // Exclude the element and move on.
         current.remove(list.get(index));
         generateSubsetsRecursive(list, subsetSize, index + 1, current, allSubsets);
-    }
-
-    private String setOfItemSetsToString (Set<Set<String>> someSetOfItemSets) {
-        StringBuilder result = new StringBuilder();
-        for (Set<String> itemset : someSetOfItemSets) {
-            StringBuilder itemsetString = new StringBuilder();
-            for (String item : itemset) {
-                itemsetString.append(item).append(" ");
-            }
-            result.append(itemsetString).append("\n");
-        }
-
-        return result.toString();
     }
 
 }

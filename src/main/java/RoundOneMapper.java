@@ -4,55 +4,75 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+public class RoundOneMapper extends Mapper<Object, Text, Text, IntWritable> {
 
-public class RoundOneMapper
-        extends Mapper<Object, Text, Text, IntWritable> {
     private final static IntWritable one = new IntWritable(1);
     private Text word = new Text();
 
-    int datasetSize, transactionsPerBlock;
-    double minFreq, p;
-    double minSupport;
+    private int datasetSize;
+    private int transactionsPerBlock;
+    private double minSupport;
+    private double p;
 
-    HashSet<String> swSet = new HashSet<>();
-
-
-    public void setup(Context context) throws IOException {
+    @Override
+    protected void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
-        datasetSize = Integer.parseInt(conf.get("dataset_size"));
-        transactionsPerBlock = Integer.parseInt(conf.get("transactions_per_block"));
-        minFreq = Double.parseDouble(conf.get("min_freq"));
-        p = transactionsPerBlock/(double)datasetSize;
-        minSupport = Double.parseDouble(conf.get("min_support"));
+        datasetSize = conf.getInt("dataset_size", 0);
+        transactionsPerBlock = conf.getInt("transactions_per_block", 0);
+        minSupport = conf.getDouble("min_support", 0);
 
-        URI[] cacheFiles = context.getCacheFiles();
-
+        // Compute fraction p: the proportion of the dataset seen by this mapper.
+        p = transactionsPerBlock / (double) datasetSize;
     }
 
-    public void map(Object key, Text value, Context context
-    ) throws IOException, InterruptedException {
-        // map method here
-        String batch = value.toString();
-        System.err.println("batch: " + batch);
-
-        List<Set<String>> basketSubset = new ArrayList<>();
-
-        List<String> lines = Arrays.asList(batch.split("\n"));
-
-        for (String line : lines) {
-            Set<String> transaction = new HashSet<>(List.of(line.split(" ")));
-            basketSubset.add(transaction);
+    @Override
+    public void map(Object key, Text value, Context context)
+            throws IOException, InterruptedException {
+        // Each input record is assumed to be a block (chunk) of baskets,
+        // with each basket on a separate line.
+//        System.err.println("Round One Mapper Reading Key: " + key);
+//        System.err.println("Round One Mapper Reading Value: " + value);
+        String block = value.toString().trim();
+        if (block.isEmpty()) {
+            return;
         }
 
-        double adjustedMinSupport = (p * minSupport);
+        // Break the block into lines
+        String[] lines = block.split("\n");
+        List<Set<String>> baskets = new ArrayList<>();
+        // each line is a transaction
+        for (String line : lines) {
+            line = line.trim();
+            if (!line.isEmpty()) {
 
-        String frequentItemsets = new APriori(basketSubset).getFrequentItemSets(adjustedMinSupport);
-        word.set(frequentItemsets);
-        context.write(word, one);
+                String[] items = line.split("\\s+");
+                // Build basket/transaction as a set of items.
+                Set<String> basket = new HashSet<>(Arrays.asList(items));
+                baskets.add(basket);
+            }
+        }
 
+        double effectiveMinSupport = Math.max(1, Math.round(p * minSupport));
 
+        Set<Set<String>> frequentItemsets = new APriori(baskets).getFrequentItemSets(effectiveMinSupport);
+
+        for (Set<String> candidate : frequentItemsets) {
+
+            StringBuilder builder = new StringBuilder();
+            for (String item : candidate) {
+                builder.append(item);
+                builder.append(" ");
+            }
+
+            word.set(builder.toString());
+//            System.err.println("Round One Mapper Writing Key: " + word);
+            context.write(word, one);
+        }
     }
 }
