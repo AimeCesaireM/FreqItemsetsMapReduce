@@ -10,7 +10,6 @@ public class APriori {
         this.transactionList = transactions;
     }
 
-    //APriori algorithm, using frequency threshold
     public Set<Set<String>> getFrequentItemSets (double minSupport){
 //        System.err.println("Running getFrequentItemSets");
         int k = 1;
@@ -51,9 +50,7 @@ public class APriori {
 
         for (Map.Entry<String, Integer> entry : items.entrySet()) {
             if (entry.getValue() >= minSupport) {
-                Set<String> itemset = new HashSet<>();
-                itemset.add(entry.getKey());
-                frequentOneItemsets.add(itemset);
+                frequentOneItemsets.add(Collections.singleton(entry.getKey()));
             }
         }
 
@@ -67,21 +64,38 @@ public class APriori {
 //        System.err.println("Running getCandidateItemsets");
         List<Set<String>> candidateItemsets = new ArrayList<>();
 
-        List<Set<String>> previousFrequentItemsetList = new ArrayList<>(previousFrequentItemsets);
-
         int size = previousFrequentItemsets.size();
 
-        // should have no duplicates
-        for (int i = 0; i < size; i++) {
-            for (int j = i + 1; j < size; j++) {
-                Set<String> combinedItemset = new HashSet<>(previousFrequentItemsetList.get(i));
-                combinedItemset.addAll(previousFrequentItemsetList.get(j));
+        List<List<String>> sortedPreviousFrequentItemsets = new ArrayList<>(size);
 
-                if (combinedItemset.size() == k + 1) {
-                    candidateItemsets.add(combinedItemset);
-//                    System.err.println("Combined itemsets: " + combinedItemset);
+        for (Set<String> itemset : previousFrequentItemsets) {
+            List<String> sortedList = new ArrayList<>(itemset);
+            Collections.sort(sortedList);
+            sortedPreviousFrequentItemsets.add(sortedList);
+        }
+
+        // this loop should now skip duplicates
+        for (int i = 0; i < size; i++) {
+            List<String> itemset_i = sortedPreviousFrequentItemsets.get(i);
+            for (int j = i + 1; j < size; j++) {
+                List<String> itemset_j = sortedPreviousFrequentItemsets.get(j);
+
+                boolean canJoin = true;
+
+                for (int m = 0; m < k-1; m++){
+                    if (!itemset_i.get(m).equals(itemset_j.get(m))){
+                        canJoin = false;
+                        break;
+                    }
                 }
 
+                if (canJoin){
+                        Set<String> candidate = new HashSet<>(itemset_i);
+                        candidate.addAll(itemset_j);
+                        if (candidate.size() == k + 1){
+                            candidateItemsets.add(candidate);
+                        }
+                }
             }
         }
 
@@ -113,7 +127,6 @@ public class APriori {
                 approvedCandidates.add(candidate);
             }
         }
-
         return approvedCandidates;
     }
 
@@ -135,6 +148,10 @@ public class APriori {
         }
         return frequentItemsets;
     }
+
+
+
+
 
     // If a data structure can help, one place will be here.
     private Set<Set<String>> generateSubsets(Set<String> set, int subsetSize) {

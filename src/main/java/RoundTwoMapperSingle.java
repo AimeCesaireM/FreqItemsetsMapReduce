@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class RoundTwoMapperSingle
         extends Mapper<Object, Text, Text, IntWritable> {
@@ -61,8 +62,8 @@ public class RoundTwoMapperSingle
     public void map(Object key, Text value, Context context
     ) throws IOException, InterruptedException {
         // It gets one itemset
-        System.err.println("Round Two Mapper Single Reading Key");
-        System.err.println("Round Two Mapper Single Reading Value:" + value);
+//        System.err.println("Round Two Mapper Single Reading Key");
+//        System.err.println("Round Two Mapper Single Reading Value:" + value);
         String[] items = value.toString().split("\\s+");
 
         Set<String> basket = new HashSet<>(Arrays.asList(items));
@@ -73,7 +74,6 @@ public class RoundTwoMapperSingle
 //            System.err.println("Basket: " + basket);
 //            System.err.println("Candidate: " + candidate);
             if (basket.containsAll(candidate)) {
-
                 //Preparing the transaction to be written to the context
                 StringBuilder builder = new StringBuilder();
 
@@ -82,6 +82,9 @@ public class RoundTwoMapperSingle
                     builder.append(" ");
                 }
                 word.set(builder.toString());
+//                String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+
+//                word.set(candidateKey);
 //                System.err.println("Round Two Mapper Single Writing Key:" + word);
                 context.write(word, one);
             }

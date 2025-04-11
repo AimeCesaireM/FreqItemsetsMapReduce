@@ -53,7 +53,8 @@ public class RoundTwoMapperMulti extends Mapper<Object, Text, Text, IntWritable>
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
-                // Remove any optional square brackets if present.
+
+                // Been having trouble with formatting reads and writes to the context.
                 if (line.startsWith("[") && line.endsWith("]")) {
                     line = line.substring(1, line.length() - 1).trim();
                 }

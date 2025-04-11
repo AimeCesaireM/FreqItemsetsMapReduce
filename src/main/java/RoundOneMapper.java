@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class RoundOneMapper extends Mapper<Object, Text, Text, IntWritable> {
 
@@ -27,7 +28,7 @@ public class RoundOneMapper extends Mapper<Object, Text, Text, IntWritable> {
         transactionsPerBlock = conf.getInt("transactions_per_block", 0);
         minSupport = conf.getDouble("min_support", 0);
 
-        // Compute fraction p: the proportion of the dataset seen by this mapper.
+        // p: the proportion of the dataset seen by this mapper.
         p = transactionsPerBlock / (double) datasetSize;
     }
 
@@ -63,14 +64,18 @@ public class RoundOneMapper extends Mapper<Object, Text, Text, IntWritable> {
         Set<Set<String>> frequentItemsets = new APriori(baskets).getFrequentItemSets(effectiveMinSupport);
 
         for (Set<String> candidate : frequentItemsets) {
-
+            // a better way to iterate through the set and build a string
             StringBuilder builder = new StringBuilder();
+
             for (String item : candidate) {
                 builder.append(item);
                 builder.append(" ");
             }
-
             word.set(builder.toString());
+
+
+//            String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+//            word.set(candidateKey);
 //            System.err.println("Round One Mapper Writing Key: " + word);
             context.write(word, one);
         }
