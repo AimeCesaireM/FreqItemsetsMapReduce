@@ -67,24 +67,24 @@ public class RoundTwoMapperSingle
         String[] items = value.toString().split("\\s+");
 
         Set<String> basket = new HashSet<>(Arrays.asList(items));
+        Set<Set<String>> subsets = new HashSet<>();
+        subsets.add(basket);
 
 //        System.err.println("Round Two Mapper Single candidateSets:" + candidateSets);
 
         for (Set<String> candidate : candidateSets) {
 //            System.err.println("Basket: " + basket);
 //            System.err.println("Candidate: " + candidate);
+            if (subsets.contains(candidate)){
+                String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+                word.set(candidateKey);
+                context.write(word, one);
+                return;
+            }
             if (basket.containsAll(candidate)) {
-                //Preparing the transaction to be written to the context
-                StringBuilder builder = new StringBuilder();
-
-                for (String item : candidate) {
-                    builder.append(item);
-                    builder.append(" ");
-                }
-                word.set(builder.toString());
-//                String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
-
-//                word.set(candidateKey);
+                subsets.add(candidate);
+                String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+                word.set(candidateKey);
 //                System.err.println("Round Two Mapper Single Writing Key:" + word);
                 context.write(word, one);
             }

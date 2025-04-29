@@ -63,7 +63,6 @@ public class SONMRMulti {
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundOneJob, transactionsPerBlock);
         roundOneJob.setJarByClass(SONMRMulti.class);
         roundOneJob.setMapperClass(RoundOneMapper.class);
-//        roundOneJob.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
         roundOneJob.setReducerClass(RoundOneReducer.class);
 
 
@@ -90,15 +89,14 @@ public class SONMRMulti {
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundTwoJob, transactionsPerBlock);
         roundTwoJob.setJarByClass(SONMRMulti.class);
         roundTwoJob.setMapperClass(RoundTwoMapperMulti.class);
-//        roundTwoJob.setCombinerClass(RoundTwoReducer.class ); // Not Very Sure here,... coming back to this
+        roundTwoJob.setCombinerClass(RoundTwoCombiner.class );
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 
 
         roundTwoJob.setOutputKeyClass(Text.class);
         roundTwoJob.setOutputValueClass(IntWritable.class);
 
-        FileInputFormat.addInputPath(roundTwoJob, inputPath); // Not sure if this is necessary
-
+        FileInputFormat.addInputPath(roundTwoJob, inputPath);
 
         FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
 

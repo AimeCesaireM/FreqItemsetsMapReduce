@@ -60,7 +60,6 @@ public class SONMRSingle {
         org.apache.hadoop.mapreduce.lib.input.NLineInputFormat.setNumLinesPerSplit(roundOneJob, transactionsPerBlock);
         roundOneJob.setJarByClass(SONMRSingle.class);
         roundOneJob.setMapperClass(RoundOneMapper.class);
-//        roundOneJob.setCombinerClass(RoundOneReducer.class); // Not Very Sure here,... coming back to this
         roundOneJob.setReducerClass(RoundOneReducer.class);
 
 
@@ -79,7 +78,7 @@ public class SONMRSingle {
 
         Job roundTwoJob = Job.getInstance(conf, "SONMRSingle Round Two");
 
-        String cacheFilePathAsString = intermPath + "/part-r-00000"; //toString() redundant ?
+        String cacheFilePathAsString = intermPath + "/part-r-00000";
         Path cacheFilePath = new Path(cacheFilePathAsString);
         roundTwoJob.addCacheFile(cacheFilePath.toUri());
 
@@ -88,7 +87,7 @@ public class SONMRSingle {
         roundTwoJob.setJarByClass(SONMRSingle.class);
 
         roundTwoJob.setMapperClass(RoundTwoMapperSingle.class); // this mapper to take only one transaction
-        //roundTwoJob.setCombinerClass(RoundTwoReducer.class); // Not Very Sure here,... coming back to this
+        roundTwoJob.setCombinerClass(RoundTwoCombiner.class);
         roundTwoJob.setReducerClass(RoundTwoReducer.class);
 
 
@@ -96,8 +95,7 @@ public class SONMRSingle {
         roundTwoJob.setOutputValueClass(IntWritable.class);
 
 
-        FileInputFormat.addInputPath(roundTwoJob, inputPath); // Not sure if this is necessary
-
+        FileInputFormat.addInputPath(roundTwoJob, inputPath);
         FileOutputFormat.setOutputPath(roundTwoJob, outputPath);
 
         double roundTwoStart = System.currentTimeMillis();

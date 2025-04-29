@@ -36,3 +36,10 @@ build/
 
 ### Mac OS ###
 .DS_Store
+*.dat
+*.txt
+*.crc
+*.txt
+/intermMulti
+/intermSingle
+inputSingleTest/input.txt

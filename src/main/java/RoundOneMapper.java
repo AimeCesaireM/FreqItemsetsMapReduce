@@ -35,8 +35,8 @@ public class RoundOneMapper extends Mapper<Object, Text, Text, IntWritable> {
     @Override
     public void map(Object key, Text value, Context context)
             throws IOException, InterruptedException {
-        // Each input record is assumed to be a block (chunk) of baskets,
-        // with each basket on a separate line.
+//         Each input record is assumed to be a block (chunk) of baskets,
+//         with each basket on a separate line.
 //        System.err.println("Round One Mapper Reading Key: " + key);
 //        System.err.println("Round One Mapper Reading Value: " + value);
         String block = value.toString().trim();
@@ -64,18 +64,10 @@ public class RoundOneMapper extends Mapper<Object, Text, Text, IntWritable> {
         Set<Set<String>> frequentItemsets = new APriori(baskets).getFrequentItemSets(effectiveMinSupport);
 
         for (Set<String> candidate : frequentItemsets) {
+
             // a better way to iterate through the set and build a string
-            StringBuilder builder = new StringBuilder();
-
-            for (String item : candidate) {
-                builder.append(item);
-                builder.append(" ");
-            }
-            word.set(builder.toString());
-
-
-//            String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
-//            word.set(candidateKey);
+            String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+            word.set(candidateKey);
 //            System.err.println("Round One Mapper Writing Key: " + word);
             context.write(word, one);
         }

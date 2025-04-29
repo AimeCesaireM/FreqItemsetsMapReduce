@@ -9,6 +9,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * RoundTwoMapper implements the second map phase of the SON algorithm.
@@ -92,17 +93,23 @@ public class RoundTwoMapperMulti extends Mapper<Object, Text, Text, IntWritable>
             String[] items = line.split("\\s+");
             Set<String> basket = new HashSet<>(Arrays.asList(items));
 
+            Set<Set<String>> subsets = new HashSet<>();
+            subsets.add(basket);
+
             // For every candidate, check if it is contained in the basket.
             for (Set<String> candidate : candidateItemsets) {
-                if (basket.containsAll(candidate)) {
+                // so we do not check duplicates
+                if (subsets.contains(candidate)){
+                    String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+                    word.set(candidateKey);
+                    context.write(word, one);
+                    return;
+                }
 
-                    StringBuilder builder = new StringBuilder();
-                    for (String item : candidate) {
-                        builder.append(item);
-                        builder.append(" ");
-                    }
-                    word.set(builder.toString());
-//                    System.err.println("Round Two Mapper Multi Writing Key: " + word);
+                if (basket.containsAll(candidate)) {
+                    subsets.add(candidate);
+                    String candidateKey = candidate.stream().sorted().collect(Collectors.joining(" "));
+                    word.set(candidateKey);
                     context.write(word, one);
                 }
             }

@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class APriori {
 
@@ -64,9 +65,7 @@ public class APriori {
 //        System.err.println("Running getCandidateItemsets");
         List<Set<String>> candidateItemsets = new ArrayList<>();
 
-        int size = previousFrequentItemsets.size();
-
-        List<List<String>> sortedPreviousFrequentItemsets = new ArrayList<>(size);
+        List<List<String>> sortedPreviousFrequentItemsets = new ArrayList<>();
 
         for (Set<String> itemset : previousFrequentItemsets) {
             List<String> sortedList = new ArrayList<>(itemset);
@@ -74,11 +73,14 @@ public class APriori {
             sortedPreviousFrequentItemsets.add(sortedList);
         }
 
+        int size = sortedPreviousFrequentItemsets.size();
+
         // this loop should now skip duplicates
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size - 1; i++) {
             List<String> itemset_i = sortedPreviousFrequentItemsets.get(i);
             for (int j = i + 1; j < size; j++) {
                 List<String> itemset_j = sortedPreviousFrequentItemsets.get(j);
+
 
                 boolean canJoin = true;
 
@@ -131,12 +133,13 @@ public class APriori {
     }
 
     private Set<Set<String>> getFinalFrequentItemSets(Set<Set<String>> candidateItemsets, double minSupport) {
-        Set<Set<String>> frequentItemsets = new HashSet<>();
+        Set<Set<String>> frequentItemsets = ConcurrentHashMap.newKeySet();
 
         // For each candidate, count the support by scanning all transactions.
-        for (Set<String> candidate : candidateItemsets) {
+        candidateItemsets.parallelStream().forEach(candidate -> {
             int count = 0;
             for (Set<String> transaction : transactionList) {
+                // this is a problem
                 if (transaction.containsAll(candidate)) {
                     count++;
                 }
@@ -145,15 +148,12 @@ public class APriori {
             if (count >= minSupport) {
                 frequentItemsets.add(candidate);
             }
-        }
+        });
         return frequentItemsets;
     }
 
 
-
-
-
-    // If a data structure can help, one place will be here.
+    // maybe a data structure can help here?
     private Set<Set<String>> generateSubsets(Set<String> set, int subsetSize) {
         Set<Set<String>> allSubsets = new HashSet<>();
         List<String> list = new ArrayList<>(set);
@@ -161,7 +161,6 @@ public class APriori {
         return allSubsets;
     }
 
-    // this recursion...
     private void generateSubsetsRecursive(List<String> list, int subsetSize, int index,
                                           Set<String> current, Set<Set<String>> allSubsets) {
         if (current.size() == subsetSize) {
