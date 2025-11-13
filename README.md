@@ -92,5 +92,3 @@ Contributions and suggestions are welcome! Please:
 - **Algorithm design**: R. Agrawal & R. Srikant, "Fast algorithms for mining association rules" (APriori)
 - **Hadoop MapReduce framework**
 - [Apache Hadoop Documentation](https://hadoop.apache.org/) for setup and configuration
-- Project lead: *Aime Cesaire Mugishawayo*
-- Contributors: [List collaborators and GitHub profiles]
