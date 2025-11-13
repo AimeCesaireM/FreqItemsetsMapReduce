@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0,maximum-scale=1.0"
+    />
+    <title>SON MapReduce Visualizer</title>
+    <meta
+      name="description"
+      content="Interactive visualization of the SON algorithm implementations SONMRSingle and SONMRMulti, comparing their two-round MapReduce pipelines."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./script.js"></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__inner">
+        <p class="hero__eyebrow">Frequent Itemset Mining</p>
+        <h1 class="hero__title">
+          SON MapReduce: Single vs Multi Basket Pipelines
+        </h1>
+        <p class="hero__subtitle">
+          Explore how the SON algorithm scales across two Hadoop jobs. Compare
+          <span class="accent">SONMRSingle</span> and
+          <span class="accent">SONMRMulti</span> side-by-side, trace the flow of
+          data through both rounds, and experiment with the parameters that drive
+          performance.
+        </p>
+      </div>
+      <div class="hero__wave" aria-hidden="true"></div>
+    </header>
+
+    <main>
+      <section class="section section--balanced" id="overview">
+        <div class="section__content">
+          <h2>How SON Works</h2>
+          <p>
+            SON (Savasere, Omiecinski, Navathe) is a two-pass MapReduce strategy
+            for mining frequent itemsets from massive transaction logs. In the
+            first job, each mapper works on a partition of the data to generate
+            local candidates; reducers keep those that reach the minimum support.
+            A second job then verifies those candidates against the full
+            dataset. This repository ships two variants for the second round.
+          </p>
+          <div class="callout">
+            <strong>Same algorithm, different I/O strategy:</strong> Both
+            implementations reuse the first MapReduce job. Their behavior diverges
+            in round two, where input format and mapper throughput are tuned for
+            either one basket per invocation or multi-basket micro-batches.
+          </div>
+        </div>
+        <aside class="section__aside">
+          <div class="stat-card">
+            <p class="stat-card__label">Primary jobs</p>
+            <p class="stat-card__value">2</p>
+            <p class="stat-card__meta">Round One (candidates) & Round Two (validation)</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__label">Shared code</p>
+            <p class="stat-card__value">RoundOne*</p>
+            <p class="stat-card__meta">Mapper & Reducer reused across both variants</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__label">Key difference</p>
+            <p class="stat-card__value">Input batching</p>
+            <p class="stat-card__meta">Single basket vs multi-basket mappers in round two</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section section--visualizer" id="visualizer">
+        <div class="section__header">
+          <h2>Explore the Two Pipelines</h2>
+          <div class="mode-toggle" role="tablist" aria-label="Select pipeline">
+            <button
+              type="button"
+              class="mode-toggle__button is-active"
+              data-mode="single"
+              role="tab"
+              aria-selected="true"
+            >
+              SONMRSingle
+            </button>
+            <button
+              type="button"
+              class="mode-toggle__button"
+              data-mode="multi"
+              role="tab"
+              aria-selected="false"
+            >
+              SONMRMulti
+            </button>
+          </div>
+        </div>
+        <div class="flow">
+          <div class="flow__summary" id="flow-summary">
+            <h3></h3>
+            <p></p>
+          </div>
+          <div class="flow__grid" id="flow-grid"></div>
+        </div>
+      </section>
+
+      <section class="section section--playground" id="playground">
+        <div class="section__header">
+          <h2>Parameter Playground</h2>
+          <p>
+            Match the constructor arguments passed to each driver class to see
+            how they influence mapper fan-out, intermediate storage, and minimum
+            support.
+          </p>
+        </div>
+        <div class="playground">
+          <form class="playground__form" aria-labelledby="playground">
+            <label class="input-group">
+              <span>Dataset size (transactions)</span>
+              <input
+                type="range"
+                min="1000"
+                max="200000"
+                step="1000"
+                value="50000"
+                id="input-dataset"
+              />
+              <output id="output-dataset" for="input-dataset">50,000</output>
+            </label>
+            <label class="input-group">
+              <span>Transactions per block</span>
+              <input
+                type="range"
+                min="10"
+                max="2000"
+                step="10"
+                value="200"
+                id="input-block"
+              />
+              <output id="output-block" for="input-block">200</output>
+            </label>
+            <label class="input-group">
+              <span>Minimum frequency</span>
+              <input
+                type="range"
+                min="0.01"
+                max="0.5"
+                step="0.01"
+                value="0.1"
+                id="input-frequency"
+              />
+              <output id="output-frequency" for="input-frequency">0.10</output>
+            </label>
+          </form>
+          <div class="playground__results">
+            <article class="result-card">
+              <header>
+                <h3>SONMRSingle</h3>
+                <p>One transaction per map call in round two.</p>
+              </header>
+              <dl>
+                <div>
+                  <dt>Round two mappers*</dt>
+                  <dd id="single-mappers">50,000</dd>
+                </div>
+                <div>
+                  <dt>Data per mapper</dt>
+                  <dd>1 basket</dd>
+                </div>
+                <div>
+                  <dt>Minimum support threshold</dt>
+                  <dd id="single-support">5,000</dd>
+                </div>
+              </dl>
+              <p class="result-card__footnote">
+                *Approximated as one mapper per transaction, reflecting the use
+                of the default <code>TextInputFormat</code>.
+              </p>
+            </article>
+            <article class="result-card">
+              <header>
+                <h3>SONMRMulti</h3>
+                <p>Micro-batches multiple transactions per mapper.</p>
+              </header>
+              <dl>
+                <div>
+                  <dt>Round two mappers*</dt>
+                  <dd id="multi-mappers">250</dd>
+                </div>
+                <div>
+                  <dt>Data per mapper</dt>
+                  <dd id="multi-data">200 baskets</dd>
+                </div>
+                <div>
+                  <dt>Minimum support threshold</dt>
+                  <dd id="multi-support">5,000</dd>
+                </div>
+              </dl>
+              <p class="result-card__footnote">
+                *Computed as dataset size divided by block size (rounded up),
+                assuming balanced splits set through
+                <code>NLineInputFormat.setNumLinesPerSplit</code>.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--sidebyside">
+        <div class="comparison">
+          <h2>Side-by-Side Breakdown</h2>
+          <div class="comparison__grid">
+            <div class="comparison__column">
+              <h3>SONMRSingle</h3>
+              <ul>
+                <li>Reuses round-one output via distributed cache.</li>
+                <li>Round two mapper consumes one transaction per invocation.</li>
+                <li>Startup overhead is higher with many mappers.</li>
+                <li>Ideal for clusters tuned for massive mapper parallelism.</li>
+              </ul>
+            </div>
+            <div class="comparison__column">
+              <h3>SONMRMulti</h3>
+              <ul>
+                <li>Round two also uses <code>MultiLineInputFormat</code>.</li>
+                <li>Mappers handle batches of baskets, reducing spin-up cost.</li>
+                <li>Suits workloads where disk reads dominate over CPU.</li>
+                <li>Combiner reduces shuffle volume for dense datasets.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout callout--subtle">
+            Both drivers compute <code>min_support = min_freq × dataset_size</code>
+            and inject these parameters into job configuration. Shuffle and reduce
+            phases remain identical across variants.
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--docs" id="gh-pages">
+        <h2>Ship with GitHub Pages</h2>
+        <ol class="gh-list">
+          <li>Commit the <code>docs/</code> folder to your repository.</li>
+          <li>
+            In your GitHub repository settings, enable Pages with the
+            <em>Deploy from a branch</em> option and select <code>main</code> /
+            <code>master</code> with the <code>/docs</code> folder.
+          </li>
+          <li>
+            The site will publish at
+            <code>https://&lt;user&gt;.github.io/&lt;repo&gt;/</code> shortly
+            after the workflow completes.
+          </li>
+        </ol>
+        <p class="gh-footnote">
+          This site is static and self-contained—no bundlers or build steps
+          required.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Built by Cesaire illustrate the MapReduce journey from
+        <code>RoundOneMapper</code> to <code>RoundTwoReducer</code>. Curious?
+        Inspect the Java sources in <code>src/main/java/</code>.
+      </p>
+    </footer>
+  </body>
+</html>
