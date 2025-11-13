@@ -28,7 +28,7 @@ Both variants leverage an **APriori**-based candidate generation (`APriori.java`
 ## Setup and Running
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/aimecesairem/son-frequent-itemset-mining.git
+   git clone https://github.com/aimecesairem/FreqItemsetsMapReduce.git
    ```
 2. **Import into IntelliJ**
    - Open IntelliJ IDEA.
